@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4A90E2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>Memoday</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #4A90E2;
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .header-title { font-size: 18px; font-weight: bold; }
+        .refresh-btn {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            color: white;
+        }
+        .refresh-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+        }
+        .nav button {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px 8px;
+            color: #4A90E2;
+        }
+        .month-year {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #eee;
+            padding: 8px 0;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: white;
+            gap: 1px;
+            background: #ddd;
+        }
+        .day {
+            background: white;
+            min-height: 60px;
+            padding: 5px;
+            cursor: pointer;
+            position: relative;
+        }
+        .day:hover { background: #f0f0f0; }
+        .day.selected { background: #e3f2fd; }
+        .day.other-month { background: #f0f0f0; color: #999; cursor: pointer; }
+        .day.other-month:hover { background: #e0e0e0; }
+        .day-number {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .day.today .day-number { color: #4A90E2; }
+        .event-bars {
+            margin-top: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .event-bar {
+            height: 4px;
+            border-radius: 2px;
+            font-size: 0;
+        }
+        .more-events {
+            font-size: 10px;
+            color: #999;
+        }
+        .event-list {
+            padding: 15px;
+            background: white;
+            margin-top: 10px;
+        }
+        .event-list h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .event-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .event-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .event-name { font-size: 14px; }
+        .no-events { color: #999; font-size: 14px; }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            margin-top: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+        .btn-edit { background: #ff9800; color: white; }
+        .btn-record { background: #4A90E2; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span class="header-title">Memoday</span>
+        <button class="refresh-btn" id="refreshBtn" title="刷新">
+            <svg viewBox="0 0 24 24">
+                <path d="M23 4v6h-6"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+        </button>
+    </div>
+
+    <div class="nav">
+        <button id="prevYear">&lt;&lt;</button>
+        <button id="prevMonth">&lt;</button>
+        <span class="month-year" id="monthYear">2026年4月</span>
+        <button id="nextMonth">&gt;</button>
+        <button id="nextYear">&gt;&gt;</button>
+    </div>
+
+    <div class="weekdays">
+        <div>周日</div><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div>
+    </div>
+
+    <div class="calendar" id="calendar"></div>
+
+    <div class="event-list" id="eventList">
+        <h3 id="selectedDateTitle">请选择一天</h3>
+        <div id="eventsContainer"></div>
+    </div>
+
+    <div class="buttons">
+        <a href="edit.html" class="btn btn-edit" id="btnEdit">编辑事件</a>
+        <a href="#" class="btn btn-record" id="btnRecord">记录</a>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const user = params.get('user') || 'root';
+
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1;
+        let selectedDate = null;
+        let eventTypes = [];
+        let eventRecords = {};
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function getFirstDayOfMonth(year, month) {
+            return new Date(year, month - 1, 1).getDay(); // Sunday = 0
+        }
+
+        function updateButtons() {
+            const recordBtn = document.getElementById('btnRecord');
+            if (selectedDate) {
+                recordBtn.href = 'record.html?date=' + selectedDate + '&user=' + user;
+                recordBtn.onclick = null;
+            } else {
+                recordBtn.href = '#';
+                recordBtn.onclick = () => { alert('请先选择一天'); return false; };
+            }
+            document.getElementById('btnEdit').href = 'edit.html?user=' + user;
+        }
+
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+
+            const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+            document.getElementById('monthYear').textContent = currentYear + '年' + monthNames[currentMonth - 1];
+
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+            let html = '';
+
+            // 上个月的天（填满第一行前面的空格）
+            const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+            const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+            const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth);
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const d = daysInPrevMonth - i;
+                const dateStr = `${prevYear}-${String(prevMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                html += `<div class="day other-month" data-date="${dateStr}" onclick="selectDay('${dateStr}')">
+                    <div class="day-number">${d}</div>
+                </div>`;
+            }
+
+            // 当月的天
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = dateStr === todayStr;
+                const isSelected = dateStr === selectedDate;
+
+                const records = eventRecords[dateStr] || [];
+                const bars = records.slice(0, 4).map(r =>
+                    `<div class="event-bar" style="background:${r.color}"></div>`
+                ).join('');
+                const more = records.length > 4 ? `<div class="more-events">+${records.length-4}</div>` : '';
+
+                html += `<div class="day${isToday?' today':''}${isSelected?' selected':''}" data-date="${dateStr}" onclick="selectDay('${dateStr}')">
+                    <div class="day-number">${d}</div>
+                    <div class="event-bars">${bars}${more}</div>
+                </div>`;
+            }
+
+            // 计算当月需要多少行
+            const filledCells = firstDay + daysInMonth;
+            const totalCells = filledCells <= 35 ? 35 : 42;
+            const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+            const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+            for (let d = 1; d <= totalCells - filledCells; d++) {
+                const dateStr = `${nextYear}-${String(nextMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                html += `<div class="day other-month" data-date="${dateStr}" onclick="selectDay('${dateStr}')">
+                    <div class="day-number">${d}</div>
+                </div>`;
+            }
+
+            calendar.innerHTML = html;
+            updateButtons();
+        }
+
+        function selectDay(date) {
+            selectedDate = date;
+            renderCalendar();
+            renderEventList();
+        }
+
+        function renderEventList() {
+            const title = document.getElementById('selectedDateTitle');
+            const container = document.getElementById('eventsContainer');
+
+            if (!selectedDate) {
+                title.textContent = '请选择一天';
+                container.innerHTML = '';
+                return;
+            }
+
+            const dateParts = selectedDate.split('-');
+            title.textContent = `${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
+
+            const records = eventRecords[selectedDate] || [];
+            if (records.length === 0) {
+                container.innerHTML = '<div class="no-events">暂无记录</div>';
+                return;
+            }
+
+            container.innerHTML = records.map(r => `
+                <div class="event-item">
+                    <div class="event-dot" style="background:${r.color}"></div>
+                    <div class="event-name">${r.name}</div>
+                </div>
+            `).join('');
+        }
+
+        function buildRecordsMap(types, records) {
+            const map = {};
+            for (const r of records) {
+                const type = types.find(t => t.id == r.event_type_id);
+                if (!map[r.date]) map[r.date] = [];
+                map[r.date].push({
+                    id: r.id,
+                    name: type ? type.name : '(已删除)',
+                    color: type ? type.color : '#ccc'
+                });
+            }
+            return map;
+        }
+
+        async function loadData() {
+            try {
+                const [typesRes, recordsRes] = await Promise.all([
+                    fetch(`api.php?action=get_types&user=${user}`),
+                    fetch(`api.php?action=get_month_records&user=${user}&year=${currentYear}&month=${currentMonth}`)
+                ]);
+                eventTypes = await typesRes.json();
+                const monthRecords = await recordsRes.json();
+                eventRecords = buildRecordsMap(eventTypes, monthRecords);
+
+                renderCalendar();
+                renderEventList();
+            } catch (e) {
+                console.error('Load failed:', e);
+            }
+        }
+
+        document.getElementById('prevYear').onclick = () => {
+            currentYear--;
+            loadData();
+        };
+        document.getElementById('prevMonth').onclick = () => {
+            currentMonth--;
+            if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+            loadData();
+        };
+        document.getElementById('nextMonth').onclick = () => {
+            currentMonth++;
+            if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+            loadData();
+        };
+        document.getElementById('nextYear').onclick = () => {
+            currentYear++;
+            loadData();
+        };
+        document.getElementById('refreshBtn').onclick = () => {
+            window.location.href = window.location.pathname + '?user=' + user;
+        };
+
+        // 监听从其他页面返回
+        window.addEventListener('pageshow', () => loadData());
+
+        loadData();
+    </script>
+</body>
+</html>

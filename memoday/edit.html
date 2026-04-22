@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff9800">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <title>编辑事件</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #ff9800;
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .back { color: white; text-decoration: none; font-size: 20px; margin-right: 15px; }
+        .header h1 { font-size: 18px; }
+        .content { padding: 15px; }
+        .section { background: white; border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+        .section-title {
+            padding: 10px 15px;
+            background: #f9f9f9;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 1px solid #eee;
+        }
+        .event-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .event-dot { width: 16px; height: 16px; border-radius: 50%; margin-right: 12px; flex-shrink: 0; }
+        .event-name { flex: 1; font-size: 16px; }
+        .btn-del {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .add-form { padding: 15px; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .input-name { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
+        .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .color-option {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+        }
+        .color-option.selected { border-color: #333; }
+        .btn-add {
+            width: 100%;
+            padding: 12px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .empty { padding: 20px; text-align: center; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back" id="backBtn">&lt;</a>
+        <h1>编辑事件</h1>
+    </div>
+
+    <div class="content">
+        <div class="section">
+            <div class="section-title">已有事件</div>
+            <div id="eventList"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">添加新事件</div>
+            <div class="add-form">
+                <div class="input-row">
+                    <input type="text" class="input-name" id="eventName" placeholder="事件名称">
+                </div>
+                <div class="color-picker" id="colorPicker"></div>
+                <button class="btn-add" id="addBtn">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const user = params.get('user') || 'root';
+
+        // 更新返回链接带上 user 参数
+        document.getElementById('backBtn').href = 'index.html?user=' + user;
+
+        const COLORS = [
+            '#E74C3C', '#E67E22', '#F1C40F', '#2ECC71',
+            '#3498DB', '#9B59B6', '#E91E63', '#95A5A6'
+        ];
+        let selectedColor = COLORS[4];
+        let eventTypes = [];
+
+        function renderColorPicker() {
+            const picker = document.getElementById('colorPicker');
+            picker.innerHTML = COLORS.map(c => `
+                <div class="color-option${c === selectedColor ? ' selected' : ''}"
+                     style="background:${c}" data-color="${c}"
+                     onclick="selectColor('${c}')"></div>
+            `).join('');
+        }
+
+        function selectColor(c) {
+            selectedColor = c;
+            renderColorPicker();
+        }
+
+        async function loadTypes() {
+            const res = await fetch(`api.php?action=get_types&user=${user}`);
+            eventTypes = await res.json();
+            renderEventList();
+        }
+
+        function renderEventList() {
+            const list = document.getElementById('eventList');
+            if (eventTypes.length === 0) {
+                list.innerHTML = '<div class="empty">暂无事件，点击下方添加</div>';
+                return;
+            }
+            list.innerHTML = eventTypes.map(t => `
+                <div class="event-item">
+                    <div class="event-dot" style="background:${t.color}"></div>
+                    <div class="event-name">${t.name}</div>
+                    <button class="btn-del" onclick="delType(${t.id})">删除</button>
+                </div>
+            `).join('');
+        }
+
+        async function addType() {
+            const name = document.getElementById('eventName').value.trim();
+            if (!name) return alert('请输入事件名称');
+            const res = await fetch(`api.php?action=add_type&user=${user}&name=${encodeURIComponent(name)}&color=${encodeURIComponent(selectedColor)}`);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('eventName').value = '';
+                loadTypes();
+            } else {
+                alert(data.error || '添加失败');
+            }
+        }
+
+        async function delType(id) {
+            if (!confirm('确定删除？')) return;
+            await fetch(`api.php?action=del_type&user=${user}&id=${id}`);
+            loadTypes();
+        }
+
+        document.getElementById('addBtn').onclick = addType;
+        renderColorPicker();
+        loadTypes();
+    </script>
+</body>
+</html>
