@@ -75,6 +75,26 @@ switch ($action) {
         echo json_encode(['success' => true, 'id' => $newId]);
         break;
 
+    case 'edit_type':
+        $id = intval($_GET['id'] ?? 0);
+        $name = $_GET['name'] ?? '';
+        $color = $_GET['color'] ?? '';
+        if (empty($name)) {
+            echo json_encode(['success' => false, 'error' => 'name is required']);
+            break;
+        }
+        foreach ($data['event_types'] as &$t) {
+            if ($t['id'] === $id && $t['user'] === $user) {
+                $t['name'] = $name;
+                $t['color'] = $color;
+                saveData($data);
+                echo json_encode(['success' => true]);
+                exit;
+            }
+        }
+        echo json_encode(['success' => false, 'error' => 'not found']);
+        break;
+
     case 'del_type':
         $id = intval($_GET['id'] ?? 0);
         $before = count($data['event_types']);
