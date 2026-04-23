@@ -191,13 +191,28 @@
                 list.innerHTML = '<div class="empty">暂无事件，点击下方添加</div>';
                 return;
             }
-            list.innerHTML = eventTypes.map(t => `
+            list.innerHTML = eventTypes.map(t => {
+                if (editingId === t.id) {
+                    return `
+                    <div class="edit-row" data-id="${t.id}">
+                        <div class="event-dot" style="background:${t.color}"></div>
+                        <input type="text" class="input-edit-name" value="${t.name}">
+                        <div class="color-picker">${COLORS.map(c => `
+                            <div class="color-option${c === t.color ? ' selected' : ''}"
+                                 style="background:${c}" data-color="${c}"></div>
+                        `).join('')}</div>
+                        <button class="btn-edit btn-save" onclick="saveType(${t.id})">保存</button>
+                        <button class="btn-edit btn-cancel" onclick="cancelEdit()">取消</button>
+                    </div>`;
+                }
+                return `
                 <div class="event-item">
                     <div class="event-dot" style="background:${t.color}"></div>
                     <div class="event-name">${t.name}</div>
+                    <button class="btn-edit" onclick="editType(${t.id})">编辑</button>
                     <button class="btn-del" onclick="delType(${t.id})">删除</button>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         async function addType() {
