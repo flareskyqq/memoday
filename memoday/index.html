@@ -197,7 +197,8 @@
 
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth() + 1;
-        let selectedDate = null;
+        const today = new Date();
+        let selectedDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
         let eventTypes = [];
         let eventRecords = {};
 
@@ -231,7 +232,6 @@
             const daysInMonth = getDaysInMonth(currentYear, currentMonth);
             const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
 
-            const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
             let html = '';
