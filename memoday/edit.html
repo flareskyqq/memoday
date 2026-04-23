@@ -137,6 +137,33 @@
         ];
         let selectedColor = COLORS[4];
         let eventTypes = [];
+        let editingId = null;
+
+        function editType(id) {
+            editingId = id;
+            renderEventList();
+        }
+
+        function cancelEdit() {
+            editingId = null;
+            renderEventList();
+        }
+
+        async function saveType(id) {
+            const row = document.querySelector(`.edit-row[data-id="${id}"]`);
+            if (!row) return;
+            const name = row.querySelector('.input-edit-name').value.trim();
+            const color = row.querySelector('.color-option.selected')?.dataset.color || '';
+            if (!name) return alert('请输入事件名称');
+            const res = await fetch(`api.php?action=edit_type&user=${user}&id=${id}&name=${encodeURIComponent(name)}&color=${encodeURIComponent(color)}`);
+            const data = await res.json();
+            if (data.success) {
+                editingId = null;
+                loadTypes();
+            } else {
+                alert(data.error || '保存失败');
+            }
+        }
 
         function renderColorPicker() {
             const picker = document.getElementById('colorPicker');
@@ -191,6 +218,16 @@
             await fetch(`api.php?action=del_type&user=${user}&id=${id}`);
             loadTypes();
         }
+
+        document.getElementById('eventList').onclick = function(e) {
+            const colorOption = e.target.closest('.edit-row .color-option');
+            if (colorOption) {
+                const row = colorOption.closest('.edit-row');
+                row.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+                colorOption.classList.add('selected');
+                row.querySelector('.event-dot').style.background = colorOption.dataset.color;
+            }
+        };
 
         document.getElementById('addBtn').onclick = addType;
         renderColorPicker();
