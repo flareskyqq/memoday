@@ -243,8 +243,14 @@
             for (let i = firstDay - 1; i >= 0; i--) {
                 const d = daysInPrevMonth - i;
                 const dateStr = `${prevYear}-${String(prevMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const records = eventRecords[dateStr] || [];
+                const bars = records.slice(0, 4).map(r =>
+                    `<div class="event-bar" style="background:${r.color}"></div>`
+                ).join('');
+                const more = records.length > 4 ? `<div class="more-events">+${records.length-4}</div>` : '';
                 html += `<div class="day other-month" data-date="${dateStr}" onclick="selectDay('${dateStr}')">
                     <div class="day-number">${d}</div>
+                    <div class="event-bars">${bars}${more}</div>
                 </div>`;
             }
 
@@ -273,8 +279,14 @@
             const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
             for (let d = 1; d <= totalCells - filledCells; d++) {
                 const dateStr = `${nextYear}-${String(nextMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const records = eventRecords[dateStr] || [];
+                const bars = records.slice(0, 4).map(r =>
+                    `<div class="event-bar" style="background:${r.color}"></div>`
+                ).join('');
+                const more = records.length > 4 ? `<div class="more-events">+${records.length-4}</div>` : '';
                 html += `<div class="day other-month" data-date="${dateStr}" onclick="selectDay('${dateStr}')">
                     <div class="day-number">${d}</div>
+                    <div class="event-bars">${bars}${more}</div>
                 </div>`;
             }
 
@@ -331,12 +343,20 @@
 
         async function loadData() {
             try {
-                const [typesRes, recordsRes] = await Promise.all([
+                // 计算上/下月（处理跨年边界）
+                const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+                const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+                const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+                const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+
+                const [typesRes, prevRes, curRes, nextRes] = await Promise.all([
                     fetch(`api.php?action=get_types&user=${user}`),
-                    fetch(`api.php?action=get_month_records&user=${user}&year=${currentYear}&month=${currentMonth}`)
+                    fetch(`api.php?action=get_month_records&user=${user}&year=${prevYear}&month=${prevMonth}`),
+                    fetch(`api.php?action=get_month_records&user=${user}&year=${currentYear}&month=${currentMonth}`),
+                    fetch(`api.php?action=get_month_records&user=${user}&year=${nextYear}&month=${nextMonth}`)
                 ]);
                 eventTypes = await typesRes.json();
-                const monthRecords = await recordsRes.json();
+                const monthRecords = (await prevRes.json()).concat(await curRes.json(), await nextRes.json());
                 eventRecords = buildRecordsMap(eventTypes, monthRecords);
 
                 renderCalendar();
